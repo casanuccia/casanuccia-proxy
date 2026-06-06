@@ -21,7 +21,7 @@ http.createServer((req, res) => {
   // Set CORS on all responses
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v))
 
-  // Auth callback route - captures OAuth code from Shopify
+  // Auth callback route
   if (req.url.startsWith('/auth/callback') && req.method === 'GET') {
     const urlParams = new URL(req.url, 'https://casanuccia-proxy-wid7.onrender.com')
     const code = urlParams.searchParams.get('code')
@@ -35,7 +35,7 @@ http.createServer((req, res) => {
     const testPayload = JSON.stringify({ query: '{ shop { name } }' })
     const options = {
       hostname: SHOPIFY_DOMAIN,
-      path: '/admin/api/2025-04/graphql.json',
+      path: '/admin/api/2024-04/graphql.json',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ http.createServer((req, res) => {
 
     const options = {
       hostname: SHOPIFY_DOMAIN,
-      path: '/admin/api/2025-04/graphql.json',
+      path: '/admin/api/2024-04/graphql.json',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
