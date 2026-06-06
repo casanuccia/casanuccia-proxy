@@ -1,7 +1,7 @@
 const https = require('https')
 const http = require('http')
 
-const SHOPIFY_DOMAIN = 'casanuccia.myshopify.com'
+const SHOPIFY_DOMAIN = '631d75-2.myshopify.com'
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN
 
 const CORS_HEADERS = {
