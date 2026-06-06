@@ -21,7 +21,13 @@ http.createServer((req, res) => {
   // Set CORS on all responses
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v))
 
-  if (req.method !== 'POST') {
+if (req.url !== '/proxy' && req.url !== '/proxy/') {
+  res.writeHead(404)
+  res.end('Not found')
+  return
+}
+
+if (req.method !== 'POST') {
     res.writeHead(405)
     res.end('Method not allowed')
     return
