@@ -50,7 +50,7 @@ if (req.method !== 'POST') {
 
     const options = {
       hostname: SHOPIFY_DOMAIN,
-      path: '/admin/api/2024-01/graphql.json',
+      path: '/admin/api/2025-04/graphql.json',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
