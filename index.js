@@ -66,6 +66,7 @@ if (req.method !== 'POST') {
       let data = ''
       shopifyRes.on('data', chunk => data += chunk)
       shopifyRes.on('end', () => {
+        console.log('Shopify status:', shopifyRes.statusCode, 'body:', data.substring(0, 200))
         res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
         res.end(data)
       })
