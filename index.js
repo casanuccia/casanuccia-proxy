@@ -21,42 +21,53 @@ http.createServer((req, res) => {
   // Set CORS on all responses
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v))
 
-if (req.url === '/test' && req.method === 'GET') {
-  const testPayload = JSON.stringify({ query: '{ shop { name } }' })
-  const options = {
-    hostname: SHOPIFY_DOMAIN,
-    path: '/admin/api/2025-04/graphql.json',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(testPayload),
-      'X-Shopify-Access-Token': SHOPIFY_TOKEN,
-    },
+  // Auth callback route - captures OAuth code from Shopify
+  if (req.url.startsWith('/auth/callback') && req.method === 'GET') {
+    const urlParams = new URL(req.url, 'https://casanuccia-proxy-wid7.onrender.com')
+    const code = urlParams.searchParams.get('code')
+    res.writeHead(200, { 'Content-Type': 'text/html' })
+    res.end(`<h1>Auth Code</h1><p>Copy this code:</p><h2>${code}</h2>`)
+    return
   }
-  const shopifyReq = https.request(options, shopifyRes => {
-    let data = ''
-    shopifyRes.on('data', chunk => data += chunk)
-    shopifyRes.on('end', () => {
-      res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
-      res.end(data)
-    })
-  })
-  shopifyReq.on('error', err => {
-    res.writeHead(500)
-    res.end(JSON.stringify({ error: err.message }))
-  })
-  shopifyReq.write(testPayload)
-  shopifyReq.end()
-  return
-}
-  
-if (req.url !== '/proxy' && req.url !== '/proxy/') {
-  res.writeHead(404)
-  res.end('Not found')
-  return
-}
 
-if (req.method !== 'POST') {
+  // Test route
+  if (req.url === '/test' && req.method === 'GET') {
+    const testPayload = JSON.stringify({ query: '{ shop { name } }' })
+    const options = {
+      hostname: SHOPIFY_DOMAIN,
+      path: '/admin/api/2025-04/graphql.json',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(testPayload),
+        'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+      },
+    }
+    const shopifyReq = https.request(options, shopifyRes => {
+      let data = ''
+      shopifyRes.on('data', chunk => data += chunk)
+      shopifyRes.on('end', () => {
+        res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
+        res.end(data)
+      })
+    })
+    shopifyReq.on('error', err => {
+      res.writeHead(500)
+      res.end(JSON.stringify({ error: err.message }))
+    })
+    shopifyReq.write(testPayload)
+    shopifyReq.end()
+    return
+  }
+
+  // Main proxy route
+  if (req.url !== '/proxy' && req.url !== '/proxy/') {
+    res.writeHead(404)
+    res.end('Not found')
+    return
+  }
+
+  if (req.method !== 'POST') {
     res.writeHead(405)
     res.end('Method not allowed')
     return
@@ -76,10 +87,9 @@ if (req.method !== 'POST') {
 
     const { query, variables } = parsed
     const payload = JSON.stringify({ query, variables })
-
     console.log('Calling Shopify:', SHOPIFY_DOMAIN)
     console.log('Token exists:', !!SHOPIFY_TOKEN)
-    
+
     const options = {
       hostname: SHOPIFY_DOMAIN,
       path: '/admin/api/2025-04/graphql.json',
