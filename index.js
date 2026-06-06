@@ -48,6 +48,9 @@ if (req.method !== 'POST') {
     const { query, variables } = parsed
     const payload = JSON.stringify({ query, variables })
 
+    console.log('Calling Shopify:', SHOPIFY_DOMAIN)
+    console.log('Token exists:', !!SHOPIFY_TOKEN)
+    
     const options = {
       hostname: SHOPIFY_DOMAIN,
       path: '/admin/api/2025-04/graphql.json',
