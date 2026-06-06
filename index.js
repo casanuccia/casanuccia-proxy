@@ -21,6 +21,35 @@ http.createServer((req, res) => {
   // Set CORS on all responses
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v))
 
+if (req.url === '/test' && req.method === 'GET') {
+  const testPayload = JSON.stringify({ query: '{ shop { name } }' })
+  const options = {
+    hostname: SHOPIFY_DOMAIN,
+    path: '/admin/api/2025-04/graphql.json',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(testPayload),
+      'X-Shopify-Access-Token': SHOPIFY_TOKEN,
+    },
+  }
+  const shopifyReq = https.request(options, shopifyRes => {
+    let data = ''
+    shopifyRes.on('data', chunk => data += chunk)
+    shopifyRes.on('end', () => {
+      res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
+      res.end(data)
+    })
+  })
+  shopifyReq.on('error', err => {
+    res.writeHead(500)
+    res.end(JSON.stringify({ error: err.message }))
+  })
+  shopifyReq.write(testPayload)
+  shopifyReq.end()
+  return
+}
+  
 if (req.url !== '/proxy' && req.url !== '/proxy/') {
   res.writeHead(404)
   res.end('Not found')
