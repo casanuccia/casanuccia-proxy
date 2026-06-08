@@ -3,11 +3,12 @@ const http = require('http')
 
 const SHOPIFY_DOMAIN = '631d75-2.myshopify.com'
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN
+const PROXY_SECRET = process.env.PROXY_SECRET
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://casanuccia.netlify.app',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Proxy-Secret',
 }
 
 http.createServer((req, res) => {
@@ -21,46 +22,7 @@ http.createServer((req, res) => {
   // Set CORS on all responses
   Object.entries(CORS_HEADERS).forEach(([k, v]) => res.setHeader(k, v))
 
-  // Auth callback route
-  if (req.url.startsWith('/auth/callback') && req.method === 'GET') {
-    const urlParams = new URL(req.url, 'https://casanuccia-proxy-wid7.onrender.com')
-    const code = urlParams.searchParams.get('code')
-    res.writeHead(200, { 'Content-Type': 'text/html' })
-    res.end(`<h1>Auth Code</h1><p>Copy this code:</p><h2>${code}</h2>`)
-    return
-  }
-
-  // Test route
-  if (req.url === '/test' && req.method === 'GET') {
-    const testPayload = JSON.stringify({ query: '{ shop { name } }' })
-    const options = {
-      hostname: SHOPIFY_DOMAIN,
-      path: '/admin/api/2024-04/graphql.json',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(testPayload),
-        'X-Shopify-Access-Token': SHOPIFY_TOKEN,
-      },
-    }
-    const shopifyReq = https.request(options, shopifyRes => {
-      let data = ''
-      shopifyRes.on('data', chunk => data += chunk)
-      shopifyRes.on('end', () => {
-        res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
-        res.end(data)
-      })
-    })
-    shopifyReq.on('error', err => {
-      res.writeHead(500)
-      res.end(JSON.stringify({ error: err.message }))
-    })
-    shopifyReq.write(testPayload)
-    shopifyReq.end()
-    return
-  }
-
-  // Main proxy route
+  // Only allow /proxy route
   if (req.url !== '/proxy' && req.url !== '/proxy/') {
     res.writeHead(404)
     res.end('Not found')
@@ -70,6 +32,13 @@ http.createServer((req, res) => {
   if (req.method !== 'POST') {
     res.writeHead(405)
     res.end('Method not allowed')
+    return
+  }
+
+  // Verify shared secret
+  if (req.headers['x-proxy-secret'] !== PROXY_SECRET) {
+    res.writeHead(401, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'Unauthorized' }))
     return
   }
 
@@ -87,8 +56,6 @@ http.createServer((req, res) => {
 
     const { query, variables } = parsed
     const payload = JSON.stringify({ query, variables })
-    console.log('Calling Shopify:', SHOPIFY_DOMAIN)
-    console.log('Token exists:', !!SHOPIFY_TOKEN)
 
     const options = {
       hostname: SHOPIFY_DOMAIN,
@@ -105,7 +72,6 @@ http.createServer((req, res) => {
       let data = ''
       shopifyRes.on('data', chunk => data += chunk)
       shopifyRes.on('end', () => {
-        console.log('Shopify status:', shopifyRes.statusCode, 'body:', data.substring(0, 200))
         res.writeHead(shopifyRes.statusCode, { 'Content-Type': 'application/json' })
         res.end(data)
       })
